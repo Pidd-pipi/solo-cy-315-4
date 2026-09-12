@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -18,13 +21,16 @@ import (
 	"github.com/gbschedule/gbschedule/internal/service"
 )
 
+var scheduleTestDBSeq atomic.Int64
+
 func newScheduleTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))), &gorm.Config{})
+	dsn := fmt.Sprintf("file:schedule_%d_%d?mode=memory&cache=shared", os.Getpid(), scheduleTestDBSeq.Add(1))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	if err := db.AutoMigrate(&model.Classroom{}, &model.Teacher{}, &model.Class{}, &model.Course{}, &model.TimeSlot{}, &model.Schedule{}, &model.AdjustmentLog{}); err != nil {
+	if err := db.AutoMigrate(&model.Classroom{}, &model.Teacher{}, &model.Class{}, &model.Course{}, &model.TimeSlot{}, &model.Schedule{}, &model.AdjustmentLog{}, &model.ScheduleDraft{}); err != nil {
 		t.Fatalf("migrate db: %v", err)
 	}
 	return db
@@ -358,4 +364,85 @@ func TestBuildDraftHonorsContextCancellation(t *testing.T) {
 	if progressWeeks == 0 {
 		t.Fatal("expected at least one progress callback before cancellation")
 	}
+}
+
+// TestBuildDraftCancelsMidWeekWithoutWaitingForWeekEnd verifies the outer
+// course loop honors cancellation within a single (large) week.
+func TestBuildDraftCancelsMidWeekWithoutWaitingForWeekEnd(t *testing.T) {
+	ctx := context.Background()
+	db := newScheduleTestDB(t)
+
+	slot := &model.TimeSlot{Code: "1", Name: "第一节", StartTime: "08:00", EndTime: "09:40"}
+	if err := db.Create(slot).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Zero-capacity room plus many classes: every (course,class) pair scans
+	// the room list, making the within-week loops genuinely heavy.
+	room := &model.Classroom{Code: "R301", Name: "301教室", Capacity: 0}
+	if err := db.Create(room).Error; err != nil {
+		t.Fatal(err)
+	}
+	teacher := &model.Teacher{Name: "张老师", EmployeeNo: "T001", Subjects: []string{"数学"}}
+	if err := db.Create(teacher).Error; err != nil {
+		t.Fatal(err)
+	}
+	course := &model.Course{Name: "数学", Code: "MATH", Duration: 1}
+	if err := db.Create(course).Error; err != nil {
+		t.Fatal(err)
+	}
+	const classN = 800
+	classes := make([]*model.Class, 0, classN)
+	classIDs := make([]uint, 0, classN)
+	for i := 0; i < classN; i++ {
+		classes = append(classes, &model.Class{Name: fmt.Sprintf("班%04d", i), StudentCount: 40, Grade: "高一"})
+	}
+	if err := db.Create(&classes).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range classes {
+		classIDs = append(classIDs, c.ID)
+	}
+	const roomN = 400
+	rooms := make([]*model.Classroom, 0, roomN)
+	roomIDs := make([]uint, 0, roomN)
+	for i := 0; i < roomN; i++ {
+		rooms = append(rooms, &model.Classroom{Code: fmt.Sprintf("RZ%04d", i), Name: fmt.Sprintf("零容量%04d", i), Capacity: 0})
+	}
+	if err := db.Create(&rooms).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rooms {
+		roomIDs = append(roomIDs, r.ID)
+	}
+
+	svc := newScheduleService(t, db)
+	// Each class gets its own day so placement has a large candidate space
+	// (days×rooms) per (course,class) pair, all rooms reject on capacity. The
+	// uncanceled week would take many seconds; cancellation must unwind within
+	// the week rather than after it completes.
+	req := &dto.GenerateScheduleRequest{
+		Weeks: 1, DaysPerWeek: classN, PeriodsPerDay: 1,
+		TeacherIDs:   []uint{teacher.ID},
+		ClassIDs:     classIDs,
+		ClassroomIDs: roomIDs,
+		Courses:      []dto.CourseRequirement{{CourseID: course.ID, WeeklyPeriods: 1}},
+	}
+
+	ctx2, cancel := context.WithCancel(ctx)
+	go func() {
+		time.Sleep(25 * time.Millisecond)
+		cancel()
+	}()
+	start := time.Now()
+	_, _, _, err := svc.BuildDraft(ctx2, req, nil)
+	stoppedIn := time.Since(start)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled mid-week, got %v", err)
+	}
+	// Bound is deliberately loose for CI but far below the multi-second full
+	// week, proving the job stopped well before the week boundary.
+	if stoppedIn > 1*time.Second {
+		t.Fatalf("cancellation did not stop the heavy week promptly: stopped_in=%s", stoppedIn)
+	}
+	t.Logf("canceled heavy week in=%s", stoppedIn)
 }

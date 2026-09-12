@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -14,13 +15,15 @@ import (
 	"github.com/gbschedule/gbschedule/internal/repository"
 )
 
+var repoTestDBSeq atomic.Int64
+
 func newTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:repo_%d_%d?mode=memory&cache=shared", os.Getpid(), repoTestDBSeq.Add(1))), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	if err := db.AutoMigrate(&model.Classroom{}, &model.Teacher{}, &model.Class{}, &model.Course{}, &model.TimeSlot{}, &model.Schedule{}, &model.AdjustmentLog{}); err != nil {
+	if err := db.AutoMigrate(&model.Classroom{}, &model.Teacher{}, &model.Class{}, &model.Course{}, &model.TimeSlot{}, &model.Schedule{}, &model.AdjustmentLog{}, &model.ScheduleDraft{}); err != nil {
 		t.Fatalf("migrate db: %v", err)
 	}
 	return db

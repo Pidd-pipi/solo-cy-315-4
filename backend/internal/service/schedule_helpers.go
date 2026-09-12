@@ -239,7 +239,7 @@ func buildCandidatePositions(days int, slots []model.TimeSlot, consecutive bool,
 	return positions
 }
 
-func placeGreedy(week uint, positions []position, periods int, occ *occupancy, class model.Class, teacher model.Teacher, course model.Course, classrooms []model.Classroom, slots []model.TimeSlot) ([]position, []model.Classroom, bool) {
+func placeGreedy(ctx context.Context, week uint, positions []position, periods int, occ *occupancy, class model.Class, teacher model.Teacher, course model.Course, classrooms []model.Classroom, slots []model.TimeSlot) ([]position, []model.Classroom, bool, error) {
 	chosen := make([]position, 0, periods)
 	chosenClassrooms := make([]model.Classroom, 0, periods)
 	used := map[string]bool{}
@@ -247,6 +247,9 @@ func placeGreedy(week uint, positions []position, periods int, occ *occupancy, c
 	for p := 0; p < periods; p++ {
 		placed := false
 		for _, pos := range positions {
+			if err := ctx.Err(); err != nil {
+				return nil, nil, false, err
+			}
 			key := slotIndexKey(pos.Day, pos.Slot.ID)
 			if used[key] {
 				continue
@@ -257,7 +260,7 @@ func placeGreedy(week uint, positions []position, periods int, occ *occupancy, c
 			if contains(teacher.UnavailableSlots, pos.Slot.Code) {
 				continue
 			}
-			classroom, ok := chooseClassroom(week, pos, occ, class, course, classrooms)
+			classroom, ok := chooseClassroom(ctx, week, pos, occ, class, course, classrooms)
 			if !ok {
 				continue
 			}
@@ -267,21 +270,27 @@ func placeGreedy(week uint, positions []position, periods int, occ *occupancy, c
 			placed = true
 			break
 		}
+		if err := ctx.Err(); err != nil {
+			return nil, nil, false, err
+		}
 		if !placed {
-			return nil, nil, false
+			return nil, nil, false, nil
 		}
 	}
 	// Commit occupancy after the full assignment succeeds.
 	for i := range chosen {
 		occ.mark(week, chosen[i], teacher.ID, class.ID, chosenClassrooms[i].ID)
 	}
-	return chosen, chosenClassrooms, true
+	return chosen, chosenClassrooms, true, nil
 }
 
-func chooseClassroom(week uint, pos position, occ *occupancy, class model.Class, course model.Course, classrooms []model.Classroom) (model.Classroom, bool) {
+func chooseClassroom(ctx context.Context, week uint, pos position, occ *occupancy, class model.Class, course model.Course, classrooms []model.Classroom) (model.Classroom, bool) {
 	var fallback model.Classroom
 	hasFallback := false
 	for _, classroom := range classrooms {
+		if err := ctx.Err(); err != nil {
+			return model.Classroom{}, false
+		}
 		if !occ.classroomFree(week, pos.Day, pos.Slot.ID, classroom.ID) {
 			continue
 		}

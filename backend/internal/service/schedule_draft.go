@@ -23,9 +23,14 @@ type DraftPlanner interface {
 	DetectConflicts(ctx context.Context, items []model.Schedule) []dto.ConflictResponse
 }
 
-// DraftPollInterval controls how often the background worker claims queued
-// drafts. It is a variable so deployments (and tests) may tune it.
+// DraftPollInterval controls how often the background worker polls for queued
+// drafts when idle. A newly submitted draft and a freed worker trigger an
+// immediate poll as well, so this interval only bounds idle latency.
 var DraftPollInterval = 200 * time.Millisecond
+
+// dbWriteTimeout bounds a single terminal-state write so a wedged database
+// cannot pin the worker forever; it is unrelated to job cancellation.
+const dbWriteTimeout = 10 * time.Second
 
 // ScheduleDraftService manages asynchronous timetable generation drafts.
 type ScheduleDraftService interface {
@@ -33,8 +38,9 @@ type ScheduleDraftService interface {
 	Get(ctx context.Context, id uint) (*dto.DraftResponse, error)
 	GetResult(ctx context.Context, id uint) (*dto.DraftResultResponse, error)
 	List(ctx context.Context, status string, page, pageSize int) ([]dto.DraftResponse, int64, error)
-	// Cancel requests cancellation. It is idempotent: canceling a draft
-	// already in a terminal state returns its current state unchanged.
+	// Cancel requests cancellation and returns quickly. It is idempotent:
+	// canceling a draft already in a terminal state returns its current state
+	// unchanged.
 	Cancel(ctx context.Context, id uint) (*dto.DraftResponse, error)
 	// Start launches the background worker and recovers tasks interrupted by
 	// a previous process.
@@ -53,6 +59,10 @@ type scheduleDraftService struct {
 	stopped bool
 	mu      sync.Mutex
 
+	// kick wakes the worker when a new draft is submitted or a running job
+	// frees the single worker slot. Buffered so senders never block.
+	kick chan struct{}
+
 	// cancels holds cancellation funcs for drafts currently executing in
 	// this process, keyed by draft id.
 	cancels map[uint]context.CancelFunc
@@ -65,6 +75,7 @@ func NewScheduleDraftService(drafts repository.ScheduleDraftRepository, planner 
 		planner: planner,
 		logger:  logger,
 		stop:    make(chan struct{}),
+		kick:    make(chan struct{}, 1),
 		cancels: map[uint]context.CancelFunc{},
 	}
 }
@@ -76,17 +87,17 @@ func (s *scheduleDraftService) Submit(ctx context.Context, req *dto.GenerateSche
 	if err != nil {
 		return nil, fmt.Errorf("marshal draft params: %w", err)
 	}
-	totalSteps := req.Weeks
 	draft := &model.ScheduleDraft{
 		Status:     model.DraftStatusQueued,
 		Params:     string(params),
 		Progress:   0,
-		TotalSteps: totalSteps,
+		TotalSteps: req.Weeks,
 		Conflicts:  "[]",
 	}
 	if err := s.drafts.Create(ctx, draft); err != nil {
 		return nil, mapWriteError("create draft", err)
 	}
+	s.signal()
 	return &dto.CreateDraftResponse{ID: draft.ID, Status: dto.DraftStatusQueued}, nil
 }
 
@@ -145,6 +156,10 @@ func (s *scheduleDraftService) List(ctx context.Context, status string, page, pa
 	return out, total, nil
 }
 
+// Cancel marks a non-terminal draft canceled and signals the executing job,
+// then returns immediately. The actual planner goroutine observes its own
+// context cancellation and stops its in-progress week; it performs no further
+// terminal-state writes.
 func (s *scheduleDraftService) Cancel(ctx context.Context, id uint) (*dto.DraftResponse, error) {
 	draft, err := s.drafts.GetByID(ctx, id)
 	if err != nil {
@@ -161,12 +176,18 @@ func (s *scheduleDraftService) Cancel(ctx context.Context, id uint) (*dto.DraftR
 	if _, err := s.drafts.RequestCancel(ctx, id, time.Now()); err != nil {
 		return nil, fmt.Errorf("cancel draft: %w", err)
 	}
+	// Signal the in-process job asynchronously-safe: the planner checks the
+	// context at fine granularity (per course/class/position).
 	s.cancelLocal(id)
 
 	updated, err := s.drafts.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("reload draft after cancel: %w", err)
 	}
+	// A queued draft that never started frees no slot, but canceling the
+	// running one may let the worker observe an already-pending queued draft
+	// promptly once the running goroutine unwinds; the worker also kicks
+	// itself on job completion.
 	return toDraftResponse(updated)
 }
 
@@ -175,6 +196,7 @@ func (s *scheduleDraftService) Start(ctx context.Context) {
 	s.mu.Lock()
 	if s.stopped {
 		s.stop = make(chan struct{})
+		s.kick = make(chan struct{}, 1)
 		s.stopped = false
 	}
 	s.mu.Unlock()
@@ -208,32 +230,52 @@ func (s *scheduleDraftService) Shutdown() {
 	s.wg.Wait()
 }
 
+// signal wakes the worker without blocking if a wakeup is already pending.
+func (s *scheduleDraftService) signal() {
+	select {
+	case s.kick <- struct{}{}:
+	default:
+	}
+}
+
 func (s *scheduleDraftService) workerLoop() {
 	defer s.wg.Done()
 	ticker := time.NewTicker(DraftPollInterval)
 	defer ticker.Stop()
 	for {
-		select {
-		case <-s.stop:
-			return
-		case <-ticker.C:
-		}
 		// A single in-process worker serializes SQLite writes and keeps
 		// ordering equivalent to the queued-at timestamps.
 		draft, err := s.drafts.ClaimNext(context.Background(), time.Now())
 		if err != nil {
 			s.logger.Error("claim draft", slog.String("error", err.Error()))
+		} else if draft != nil {
+			s.execute(draft)
+			// The slot is free: immediately look for the next queued draft
+			// instead of waiting out the idle poll interval.
 			continue
 		}
-		if draft == nil {
-			continue
+
+		select {
+		case <-s.stop:
+			return
+		case <-ticker.C:
+		case <-s.kick:
 		}
-		s.execute(draft)
 	}
 }
 
+// dbContext returns a fresh, non-job-bound context for a terminal-state write.
+// It deliberately derives from Background (not the planner's cancelable
+// context) so canceling a job can never invalidate the write that records
+// the cancellation outcome; repository state transitions are themselves
+// conditional and never turn a canceled draft into succeeded/failed.
+func dbContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), dbWriteTimeout)
+}
+
 func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
-	ctx, cancel := context.WithCancel(context.Background())
+	// jobCtx is canceled only for this draft (user cancel / shutdown).
+	jobCtx, cancel := context.WithCancel(context.Background())
 	s.mu.Lock()
 	s.cancels[draft.ID] = cancel
 	s.mu.Unlock()
@@ -250,7 +292,7 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 
 	lastPersist := time.Time{}
 
-	plans, placementConflicts, required, err := s.planner.BuildDraft(ctx, &req, func(p DraftProgress) {
+	plans, placementConflicts, required, err := s.planner.BuildDraft(jobCtx, &req, func(p DraftProgress) {
 		if p.TotalWeeks <= 0 {
 			return
 		}
@@ -267,9 +309,10 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 		s.persistProgress(draft.ID, progress, p.TotalWeeks, p.CurrentStep, p.Conflicts)
 	})
 	if err != nil {
-		if errors.Is(ctx.Err(), context.Canceled) || errors.Is(context.Cause(ctx), context.Canceled) {
-			// Cancellation wins: the draft is already in canceled state and
-			// must never flip back to failed.
+		// Cancellation wins. The row is already canceled (RequestCancel set
+		// that state); we must not overwrite it with failed, and no DB work
+		// may run on the now-dead job context.
+		if isCancellation(err, jobCtx) {
 			s.logger.Info("draft canceled during generation", slog.Uint64("draft_id", uint64(draft.ID)))
 			return
 		}
@@ -277,10 +320,11 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 		return
 	}
 
-	// A cancel arriving between the last progress write and completion is
-	// honored: the context is checked through BuildDraft, but re-confirm here
-	// so a result can never overwrite the canceled terminal state.
-	canceled, cerr := s.drafts.IsCanceled(ctx, draft.ID)
+	// Re-confirm cancellation reached after the last inner check so a result
+	// can never overwrite the canceled terminal state.
+	checkCtx, checkCancel := dbContext()
+	canceled, cerr := s.drafts.IsCanceled(checkCtx, draft.ID)
+	checkCancel()
 	if cerr != nil {
 		s.failDraft(draft.ID, cerr.Error())
 		return
@@ -289,9 +333,13 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 		return
 	}
 
-	detected := s.planner.DetectConflicts(ctx, plans)
+	// Pure CPU/enrichment work may still honor cancellation cheaply.
+	if jobCtx.Err() != nil {
+		return
+	}
+	detected := s.planner.DetectConflicts(context.Background(), plans)
 	allConflicts := append(append([]dto.ConflictResponse{}, placementConflicts...), detected...)
-	responses, err := s.planner.BuildDraftResponses(ctx, plans)
+	responses, err := s.planner.BuildDraftResponses(context.Background(), plans)
 	if err != nil {
 		s.failDraft(draft.ID, err.Error())
 		return
@@ -311,7 +359,9 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 		s.failDraft(draft.ID, fmt.Sprintf("encode draft conflicts: %v", err))
 		return
 	}
-	if err := s.drafts.Succeed(ctx, draft.ID, string(resultJSON), string(conflictsJSON), time.Now()); err != nil {
+	writeCtx, writeCancel := dbContext()
+	defer writeCancel()
+	if err := s.drafts.Succeed(writeCtx, draft.ID, string(resultJSON), string(conflictsJSON), time.Now()); err != nil {
 		if errors.Is(err, repository.ErrConcurrentUpdate) {
 			// The draft was canceled while we finished; leave it canceled.
 			return
@@ -320,12 +370,24 @@ func (s *scheduleDraftService) execute(draft *model.ScheduleDraft) {
 	}
 }
 
+func isCancellation(err error, ctx context.Context) bool {
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	if errors.Is(context.Cause(ctx), context.Canceled) {
+		return true
+	}
+	return false
+}
+
 func (s *scheduleDraftService) persistProgress(id uint, progress, totalSteps int, step string, conflicts []dto.ConflictResponse) {
 	payload, err := json.Marshal(conflicts)
 	if err != nil {
 		payload = []byte("[]")
 	}
-	if err := s.drafts.UpdateProgress(context.Background(), id, repository.DraftProgressUpdate{
+	ctx, cancel := dbContext()
+	defer cancel()
+	if err := s.drafts.UpdateProgress(ctx, id, repository.DraftProgressUpdate{
 		Progress:    progress,
 		TotalSteps:  totalSteps,
 		CurrentStep: step,
@@ -336,7 +398,9 @@ func (s *scheduleDraftService) persistProgress(id uint, progress, totalSteps int
 }
 
 func (s *scheduleDraftService) failDraft(id uint, reason string) {
-	if err := s.drafts.Fail(context.Background(), id, reason, time.Now()); err != nil {
+	ctx, cancel := dbContext()
+	defer cancel()
+	if err := s.drafts.Fail(ctx, id, reason, time.Now()); err != nil {
 		if errors.Is(err, repository.ErrConcurrentUpdate) {
 			return
 		}

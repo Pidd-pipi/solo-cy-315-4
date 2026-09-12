@@ -182,8 +182,16 @@ func (s *scheduleService) buildPlan(ctx context.Context, req *dto.GenerateSchedu
 		}
 		occ := newOccupancy()
 		for _, requirement := range req.Courses {
+			if err := ctx.Err(); err != nil {
+				return nil, nil, 0, fmt.Errorf("generate schedule: %w", err)
+			}
 			targetClasses := targetClassesForRequirement(classes, requirement, req.ClassIDs)
-			for _, class := range targetClasses {
+			for ci, class := range targetClasses {
+				if ci%16 == 0 {
+					if err := ctx.Err(); err != nil {
+						return nil, nil, 0, fmt.Errorf("generate schedule: %w", err)
+					}
+				}
 				teacher := pickTeacher(teachers, requirement, courses, courseMap, &teacherCursor)
 				if teacher == nil {
 					continue
@@ -200,8 +208,11 @@ func (s *scheduleService) buildPlan(ctx context.Context, req *dto.GenerateSchedu
 				required += requirement.WeeklyPeriods
 
 				positions := buildCandidatePositions(req.DaysPerWeek, slots, requirement.Consecutive, requirement.WeeklyPeriods)
-				chosen, chosenClassrooms, ok := placeGreedy(uint(week), positions, requirement.WeeklyPeriods, occ, class, *teacher, course, classrooms, slots)
-				if !ok {
+				chosen, chosenClassrooms, placed, perr := placeGreedy(ctx, uint(week), positions, requirement.WeeklyPeriods, occ, class, *teacher, course, classrooms, slots)
+				if perr != nil {
+					return nil, nil, 0, fmt.Errorf("generate schedule: %w", perr)
+				}
+				if !placed {
 					conflicts = append(conflicts, dto.ConflictResponse{
 						Type:       constants.ConflictTeacherTime,
 						EntityType: "course",
