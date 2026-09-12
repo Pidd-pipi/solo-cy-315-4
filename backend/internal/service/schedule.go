@@ -14,9 +14,27 @@ import (
 	"github.com/gbschedule/gbschedule/internal/repository"
 )
 
+// DraftProgress reports incremental progress of an asynchronous draft run.
+type DraftProgress struct {
+	Week        int
+	TotalWeeks  int
+	CurrentStep string
+	Placed      int
+	Conflicts   []dto.ConflictResponse
+}
+
+// DraftProgressCallback is invoked after every week of a draft generation.
+type DraftProgressCallback func(DraftProgress)
+
 // ScheduleService exposes scheduling, conflict detection, adjustment and statistics operations.
 type ScheduleService interface {
 	Generate(ctx context.Context, req *dto.GenerateScheduleRequest) (*dto.GenerateScheduleResponse, error)
+	// BuildDraft runs the scheduling algorithm in memory only: it never
+	// touches the published timetable, so concurrent drafts and manual
+	// adjustments cannot affect each other.
+	BuildDraft(ctx context.Context, req *dto.GenerateScheduleRequest, onProgress DraftProgressCallback) ([]model.Schedule, []dto.ConflictResponse, int, error)
+	BuildDraftResponses(ctx context.Context, plans []model.Schedule) ([]dto.ScheduleResponse, error)
+	DetectConflicts(ctx context.Context, items []model.Schedule) []dto.ConflictResponse
 	List(ctx context.Context, week, classID, teacherID, classroomID *uint) ([]dto.ScheduleResponse, error)
 	Get(ctx context.Context, id uint) (*dto.ScheduleResponse, error)
 	CheckConflicts(ctx context.Context) ([]dto.ConflictResponse, error)
@@ -62,37 +80,95 @@ func NewScheduleService(
 	}
 }
 
-// Generate creates a timetable with a greedy scheduling algorithm.
+// Generate creates a timetable with a greedy scheduling algorithm and
+// replaces the currently published timetable with the result.
 func (s *scheduleService) Generate(ctx context.Context, req *dto.GenerateScheduleRequest) (*dto.GenerateScheduleResponse, error) {
+	allSchedules, conflicts, required, err := s.buildPlan(ctx, req, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Regenerate the full timetable for the requested semester so stale
+	// weeks from a previous longer run are not left behind.
+	if err := s.schedules.DeleteAll(ctx); err != nil {
+		return nil, fmt.Errorf("clear old schedules: %w", err)
+	}
+	if err := s.schedules.CreateBatch(ctx, allSchedules); err != nil {
+		return nil, fmt.Errorf("persist schedules: %w", err)
+	}
+
+	generatedConflicts := s.detectConflicts(ctx, allSchedules)
+	responses, err := s.enrichSchedules(ctx, allSchedules)
+	if err != nil {
+		return nil, fmt.Errorf("enrich schedules: %w", err)
+	}
+	resp := &dto.GenerateScheduleResponse{
+		Schedules: responses,
+		Conflicts: append(conflicts, generatedConflicts...),
+		Generated: len(allSchedules),
+		Required:  required,
+	}
+	return resp, nil
+}
+
+// BuildDraft implements ScheduleService.
+func (s *scheduleService) BuildDraft(ctx context.Context, req *dto.GenerateScheduleRequest, onProgress DraftProgressCallback) ([]model.Schedule, []dto.ConflictResponse, int, error) {
+	return s.buildPlan(ctx, req, onProgress)
+}
+
+// BuildDraftResponses enriches in-memory draft plans for API serialization.
+func (s *scheduleService) BuildDraftResponses(ctx context.Context, plans []model.Schedule) ([]dto.ScheduleResponse, error) {
+	responses, err := s.enrichSchedules(ctx, plans)
+	if err != nil {
+		return nil, fmt.Errorf("enrich draft schedules: %w", err)
+	}
+	for i := range responses {
+		// Plans are not persisted; use a stable 1-based placeholder id.
+		responses[i].ID = uint(i + 1)
+	}
+	return responses, nil
+}
+
+// DetectConflicts exposes conflict detection over an arbitrary plan set.
+func (s *scheduleService) DetectConflicts(ctx context.Context, items []model.Schedule) []dto.ConflictResponse {
+	return s.detectConflicts(ctx, items)
+}
+
+// buildPlan runs the greedy algorithm and returns the planned lessons plus
+// placement conflicts. It performs no writes to the published timetable.
+func (s *scheduleService) buildPlan(ctx context.Context, req *dto.GenerateScheduleRequest, onProgress DraftProgressCallback) ([]model.Schedule, []dto.ConflictResponse, int, error) {
 	allSlots, _, err := s.timeSlots.List(ctx, 1, constants.MaxPageSize)
 	if err != nil {
-		return nil, fmt.Errorf("load time slots: %w", err)
+		return nil, nil, 0, fmt.Errorf("load time slots: %w", err)
 	}
 	if req.PeriodsPerDay > len(allSlots) {
-		return nil, fmt.Errorf("generate schedule: %w: periods_per_day %d exceeds available time slots %d", ErrInvalid, req.PeriodsPerDay, len(allSlots))
+		return nil, nil, 0, fmt.Errorf("generate schedule: %w: periods_per_day %d exceeds available time slots %d", ErrInvalid, req.PeriodsPerDay, len(allSlots))
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, 0, fmt.Errorf("generate schedule: %w", err)
 	}
 	slots := allSlots[:req.PeriodsPerDay]
 
 	courses, err := s.courses.GetByIDs(ctx, requirementCourseIDs(req.Courses))
 	if err != nil {
-		return nil, fmt.Errorf("load courses: %w", err)
+		return nil, nil, 0, fmt.Errorf("load courses: %w", err)
 	}
 	courseMap := entityMap(courses, func(c model.Course) uint { return c.ID })
 
 	classes, err := s.resolveClasses(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, 0, err
 	}
 	teachers, err := s.resolveTeachers(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, 0, err
 	}
 	classrooms, err := s.resolveClassrooms(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, 0, err
 	}
 	if len(teachers) == 0 || len(classes) == 0 || len(classrooms) == 0 {
-		return nil, fmt.Errorf("generate schedule: %w: teachers, classes and classrooms must not be empty", ErrInvalid)
+		return nil, nil, 0, fmt.Errorf("generate schedule: %w: teachers, classes and classrooms must not be empty", ErrInvalid)
 	}
 
 	teacherCursor := 0
@@ -101,6 +177,9 @@ func (s *scheduleService) Generate(ctx context.Context, req *dto.GenerateSchedul
 	required := 0
 
 	for week := 1; week <= req.Weeks; week++ {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, 0, fmt.Errorf("generate schedule: %w", err)
+		}
 		occ := newOccupancy()
 		for _, requirement := range req.Courses {
 			targetClasses := targetClassesForRequirement(classes, requirement, req.ClassIDs)
@@ -121,7 +200,7 @@ func (s *scheduleService) Generate(ctx context.Context, req *dto.GenerateSchedul
 				required += requirement.WeeklyPeriods
 
 				positions := buildCandidatePositions(req.DaysPerWeek, slots, requirement.Consecutive, requirement.WeeklyPeriods)
-				chosen, classrooms, ok := placeGreedy(uint(week), positions, requirement.WeeklyPeriods, occ, class, *teacher, course, classrooms, slots)
+				chosen, chosenClassrooms, ok := placeGreedy(uint(week), positions, requirement.WeeklyPeriods, occ, class, *teacher, course, classrooms, slots)
 				if !ok {
 					conflicts = append(conflicts, dto.ConflictResponse{
 						Type:       constants.ConflictTeacherTime,
@@ -138,7 +217,7 @@ func (s *scheduleService) Generate(ctx context.Context, req *dto.GenerateSchedul
 						Week:        uint(week),
 						DayOfWeek:   chosen[i].Day,
 						TimeSlotID:  chosen[i].Slot.ID,
-						ClassroomID: classrooms[i].ID,
+						ClassroomID: chosenClassrooms[i].ID,
 						TeacherID:   teacher.ID,
 						ClassID:     class.ID,
 						CourseID:    course.ID,
@@ -146,33 +225,17 @@ func (s *scheduleService) Generate(ctx context.Context, req *dto.GenerateSchedul
 				}
 			}
 		}
+		if onProgress != nil {
+			onProgress(DraftProgress{
+				Week:        week,
+				TotalWeeks:  req.Weeks,
+				CurrentStep: fmt.Sprintf("week %d/%d generated", week, req.Weeks),
+				Placed:      len(allSchedules),
+				Conflicts:   conflicts,
+			})
+		}
 	}
-
-	// Regenerate the full timetable for the requested semester so stale
-	// weeks from a previous longer run are not left behind.
-	if err := s.schedules.DeleteAll(ctx); err != nil {
-		return nil, fmt.Errorf("clear old schedules: %w", err)
-	}
-	if err := s.schedules.CreateBatch(ctx, allSchedules); err != nil {
-		return nil, fmt.Errorf("persist schedules: %w", err)
-	}
-
-	generatedConflicts, err := s.CheckConflicts(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("check generated conflicts: %w", err)
-	}
-
-	responses, err := s.enrichSchedules(ctx, allSchedules)
-	if err != nil {
-		return nil, fmt.Errorf("enrich schedules: %w", err)
-	}
-	resp := &dto.GenerateScheduleResponse{
-		Schedules: responses,
-		Conflicts: append(conflicts, generatedConflicts...),
-		Generated: len(allSchedules),
-		Required:  required,
-	}
-	return resp, nil
+	return allSchedules, conflicts, required, nil
 }
 
 func (s *scheduleService) List(ctx context.Context, week, classID, teacherID, classroomID *uint) ([]dto.ScheduleResponse, error) {

@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -229,5 +230,132 @@ func TestScheduleServiceGenerateReplacesStaleWeeks(t *testing.T) {
 	}
 	if items[0].Week != 1 {
 		t.Fatalf("expected only week 1 to remain, got week %d", items[0].Week)
+	}
+}
+
+func TestBuildDraftDoesNotModifyPublishedTimetable(t *testing.T) {
+	ctx := context.Background()
+	db := newScheduleTestDB(t)
+
+	slot := &model.TimeSlot{Code: "1", Name: "第一节", StartTime: "08:00", EndTime: "09:40"}
+	if err := db.Create(slot).Error; err != nil {
+		t.Fatal(err)
+	}
+	room := &model.Classroom{Code: "R301", Name: "301教室", Capacity: 50}
+	if err := db.Create(room).Error; err != nil {
+		t.Fatal(err)
+	}
+	teacher := &model.Teacher{Name: "张老师", EmployeeNo: "T001", Subjects: []string{"数学"}}
+	if err := db.Create(teacher).Error; err != nil {
+		t.Fatal(err)
+	}
+	class := &model.Class{Name: "一班", StudentCount: 40, Grade: "高一"}
+	if err := db.Create(class).Error; err != nil {
+		t.Fatal(err)
+	}
+	course := &model.Course{Name: "数学", Code: "MATH", Duration: 1}
+	if err := db.Create(course).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	svc := newScheduleService(t, db)
+	req := &dto.GenerateScheduleRequest{
+		Weeks: 1, DaysPerWeek: 1, PeriodsPerDay: 1,
+		Courses:      []dto.CourseRequirement{{CourseID: course.ID, WeeklyPeriods: 1, ClassID: class.ID, TeacherID: teacher.ID}},
+		TeacherIDs:   []uint{teacher.ID},
+		ClassIDs:     []uint{class.ID},
+		ClassroomIDs: []uint{room.ID},
+	}
+	if _, err := svc.Generate(ctx, req); err != nil {
+		t.Fatalf("publish timetable: %v", err)
+	}
+	published, err := svc.List(ctx, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("list published: %v", err)
+	}
+	if len(published) != 1 {
+		t.Fatalf("expected 1 published lesson, got %d", len(published))
+	}
+	publishedID := published[0].ID
+
+	// Build a draft with different conditions: it must not rewrite the
+	// published timetable.
+	draftReq := &dto.GenerateScheduleRequest{
+		Weeks: 3, DaysPerWeek: 1, PeriodsPerDay: 1,
+		Courses:      []dto.CourseRequirement{{CourseID: course.ID, WeeklyPeriods: 1, ClassID: class.ID, TeacherID: teacher.ID}},
+		TeacherIDs:   []uint{teacher.ID},
+		ClassIDs:     []uint{class.ID},
+		ClassroomIDs: []uint{room.ID},
+	}
+	plans, conflicts, required, err := svc.BuildDraft(ctx, draftReq, nil)
+	if err != nil {
+		t.Fatalf("build draft: %v", err)
+	}
+	if len(plans) != 3 || required != 3 {
+		t.Fatalf("expected 3 draft lessons, got plans=%d required=%d conflicts=%v", len(plans), required, conflicts)
+	}
+	after, err := svc.List(ctx, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("list published after draft: %v", err)
+	}
+	if len(after) != 1 || after[0].ID != publishedID {
+		t.Fatalf("published timetable was modified by draft: %+v", after)
+	}
+}
+
+func TestBuildDraftHonorsContextCancellation(t *testing.T) {
+	ctx := context.Background()
+	db := newScheduleTestDB(t)
+
+	slot := &model.TimeSlot{Code: "1", Name: "第一节", StartTime: "08:00", EndTime: "09:40"}
+	if err := db.Create(slot).Error; err != nil {
+		t.Fatal(err)
+	}
+	room := &model.Classroom{Code: "R301", Name: "301教室", Capacity: 50}
+	if err := db.Create(room).Error; err != nil {
+		t.Fatal(err)
+	}
+	teacher := &model.Teacher{Name: "张老师", EmployeeNo: "T001", Subjects: []string{"数学"}}
+	if err := db.Create(teacher).Error; err != nil {
+		t.Fatal(err)
+	}
+	class := &model.Class{Name: "一班", StudentCount: 40, Grade: "高一"}
+	if err := db.Create(class).Error; err != nil {
+		t.Fatal(err)
+	}
+	course := &model.Course{Name: "数学", Code: "MATH", Duration: 1}
+	if err := db.Create(course).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	svc := newScheduleService(t, db)
+	req := &dto.GenerateScheduleRequest{
+		Weeks: 10, DaysPerWeek: 1, PeriodsPerDay: 1,
+		Courses:      []dto.CourseRequirement{{CourseID: course.ID, WeeklyPeriods: 1, ClassID: class.ID, TeacherID: teacher.ID}},
+		TeacherIDs:   []uint{teacher.ID},
+		ClassIDs:     []uint{class.ID},
+		ClassroomIDs: []uint{room.ID},
+	}
+	ctx2, cancel := context.WithCancel(ctx)
+	progressWeeks := 0
+	errCh := make(chan error, 1)
+	go func() {
+		_, _, _, err := svc.BuildDraft(ctx2, req, func(p service.DraftProgress) {
+			progressWeeks = p.Week
+			if p.Week == 1 {
+				cancel()
+				// Give the per-week context check a chance to observe the
+				// canceled state before returning from the callback.
+				<-ctx2.Done()
+			}
+		})
+		errCh <- err
+	}()
+	err := <-errCh
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if progressWeeks == 0 {
+		t.Fatal("expected at least one progress callback before cancellation")
 	}
 }

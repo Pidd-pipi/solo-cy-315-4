@@ -22,6 +22,11 @@ func Created(c *gin.Context, data any) {
 	c.JSON(http.StatusCreated, dto.Response{Code: constants.CodeOK, Message: constants.MsgOK, Data: data})
 }
 
+// Accepted writes a unified accepted response for asynchronous tasks.
+func Accepted(c *gin.Context, data any) {
+	c.JSON(http.StatusAccepted, dto.Response{Code: constants.CodeOK, Message: constants.MsgOK, Data: data})
+}
+
 // Error converts a service error to a unified JSON response.
 func Error(c *gin.Context, err error) {
 	switch {

@@ -476,6 +476,162 @@
                 }
             }
         },
+        "/api/v1/schedule-drafts": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule-drafts"
+                ],
+                "summary": "List schedule drafts, newest first",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "queued|running|succeeded|failed|canceled",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "The draft id is returned immediately and timetable generation runs in the background.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule-drafts"
+                ],
+                "summary": "Submit scheduling conditions and create a draft",
+                "parameters": [
+                    {
+                        "description": "scheduling input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedule-drafts/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule-drafts"
+                ],
+                "summary": "Get a draft with progress, current conflicts and failure reason",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "draft id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedule-drafts/{id}/cancel": {
+            "post": {
+                "description": "Canceling a draft already in a terminal state returns that state unchanged.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule-drafts"
+                ],
+                "summary": "Cancel a queued or running draft (idempotent)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "draft id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedule-drafts/{id}/result": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule-drafts"
+                ],
+                "summary": "Get the full timetable, conflicts and summary of a successful draft",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "draft id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/schedules": {
             "get": {
                 "produces": [

@@ -582,6 +582,109 @@ paths:
       summary: Update a course
       tags:
       - courses
+  /api/v1/schedule-drafts:
+    get:
+      parameters:
+      - description: queued|running|succeeded|failed|canceled
+        in: query
+        name: status
+        type: string
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List schedule drafts, newest first
+      tags:
+      - schedule-drafts
+    post:
+      consumes:
+      - application/json
+      description: The draft id is returned immediately and timetable generation runs
+        in the background.
+      parameters:
+      - description: scheduling input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Submit scheduling conditions and create a draft
+      tags:
+      - schedule-drafts
+  /api/v1/schedule-drafts/{id}:
+    get:
+      parameters:
+      - description: draft id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a draft with progress, current conflicts and failure reason
+      tags:
+      - schedule-drafts
+  /api/v1/schedule-drafts/{id}/cancel:
+    post:
+      description: Canceling a draft already in a terminal state returns that state
+        unchanged.
+      parameters:
+      - description: draft id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Cancel a queued or running draft (idempotent)
+      tags:
+      - schedule-drafts
+  /api/v1/schedule-drafts/{id}/result:
+    get:
+      parameters:
+      - description: draft id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get the full timetable, conflicts and summary of a successful draft
+      tags:
+      - schedule-drafts
   /api/v1/schedules:
     get:
       parameters:

@@ -6,6 +6,7 @@
 
 - **基础数据管理**：教室、教师、班级、课程、时间段的完整 CRUD API。
 - **智能排课算法**：根据学期周数、每周天数、每天节数和课程周课时要求生成课表，避开教师/班级/教室时间冲突，优先满足连排需求。
+- **排课草案管理（异步任务）**：提交排课条件后立即返回草案编号，课表在后台生成；支持排队、生成中、成功、失败、取消五种状态，生成中可查询进度、当前冲突与失败原因，可取消未结束任务；成功后可查看完整课表、冲突结果与汇总统计。草案生成不会改写已发布课表；任务与结果持久化，服务重启后仍可查询。
 - **冲突检测与报告**：检测教师时间冲突、班级时间冲突、教室时间冲突、教室容量冲突和教师偏好冲突，并给出解决建议。
 - **课表查询与导出**：按班级、教师、教室查询课表，支持 JSON / CSV 导出，支持按周次查看。
 - **调课与手动调整**：支持交换两节课、移动单节课到空闲时段，自动重新检测冲突并记录调课历史。
@@ -57,16 +58,37 @@ go run ./cmd/server
 | GET/PUT/DELETE | `/api/v1/courses/:id` | 课程详情 / 更新 / 删除 |
 | GET/POST | `/api/v1/time-slots` | 时间段列表 / 新建时间段 |
 | GET/PUT/DELETE | `/api/v1/time-slots/:id` | 时间段详情 / 更新 / 删除 |
-| POST | `/api/v1/schedules/generate` | 智能排课 |
+| POST | `/api/v1/schedules/generate` | 智能排课（同步，直接发布课表） |
 | GET | `/api/v1/schedules` | 课表查询 |
 | GET | `/api/v1/schedules/conflicts` | 冲突检测 |
 | POST | `/api/v1/schedules/swap` | 交换两节课 |
 | POST | `/api/v1/schedules/move` | 移动单节课 |
 | GET | `/api/v1/schedules/adjustments` | 调课历史 |
 | GET | `/api/v1/schedules/export` | 课表导出（JSON/CSV） |
+| POST | `/api/v1/schedule-drafts` | 提交排课条件，异步生成草案（返回 202 与草案编号） |
+| GET | `/api/v1/schedule-drafts` | 草案列表（按创建时间倒序，`page`/`page_size` 分页，可按 `status` 过滤） |
+| GET | `/api/v1/schedule-drafts/:id` | 查询草案状态、进度、当前冲突、失败原因 |
+| GET | `/api/v1/schedule-drafts/:id/result` | 成功草案的完整课表、冲突结果与汇总统计 |
+| POST | `/api/v1/schedule-drafts/:id/cancel` | 取消排队中/生成中的草案（幂等，终态不可改写） |
 | GET | `/api/v1/statistics/classrooms` | 教室利用率 |
 | GET | `/api/v1/statistics/teachers` | 教师工作量 |
 | GET | `/api/v1/statistics/density` | 课程分布热力图 |
+
+### 排课草案状态流转
+
+```text
+queued ──claim──▶ running ──生成完成──▶ succeeded （终态，结果不可变）
+                     │
+                     ├──生成出错──▶ failed       （终态，记录 fail_reason）
+                     │
+queued/running ─cancel─▶ canceled                （终态，重复取消结果不变）
+```
+
+- 提交后立即得到草案 `id`，后台 worker 串行处理排队任务。
+- 生成中可通过 `GET /schedule-drafts/:id` 查看 `progress`（0-100）、`current_step` 和已发现的 `conflicts`。
+- 取消接口幂等：对已处于成功/失败/取消终态的草案调用取消，返回原状态且不改写任何字段。
+- 草案只在内存与自身结果中生成课表，**不会修改已发布课表**（`/schedules/generate` 才会发布）。
+- 服务重启时：排队中的任务保留排队、正在运行的任务标记为 `failed`（原因为服务重启），成功草案的结果仍可查询。
 
 统一响应格式：
 

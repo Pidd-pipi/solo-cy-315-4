@@ -87,3 +87,23 @@ CREATE TABLE IF NOT EXISTS adjustment_logs (
     detail TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_adjustment_logs_schedule ON adjustment_logs(schedule_id);
+
+CREATE TABLE IF NOT EXISTS schedule_drafts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at DATETIME,
+    updated_at DATETIME,
+    deleted_at DATETIME,
+    status TEXT NOT NULL DEFAULT 'queued',
+    params TEXT NOT NULL,
+    progress INTEGER NOT NULL DEFAULT 0,
+    total_steps INTEGER NOT NULL DEFAULT 0,
+    current_step TEXT NOT NULL DEFAULT '',
+    conflicts TEXT NOT NULL DEFAULT '[]',
+    result_json TEXT,
+    fail_reason TEXT NOT NULL DEFAULT '',
+    started_at DATETIME,
+    finished_at DATETIME
+);
+CREATE INDEX IF NOT EXISTS idx_schedule_drafts_status ON schedule_drafts(status);
+CREATE INDEX IF NOT EXISTS idx_schedule_drafts_started_at ON schedule_drafts(started_at);
+CREATE INDEX IF NOT EXISTS idx_schedule_drafts_finished_at ON schedule_drafts(finished_at);
