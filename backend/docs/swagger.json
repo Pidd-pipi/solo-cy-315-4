@@ -1,0 +1,1506 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "教室排课、教室资源管理和冲突检测 RESTful API。",
+        "title": "教室排课助手 API",
+        "contact": {},
+        "version": "1.0.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/api/v1/classes": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classes"
+                ],
+                "summary": "List classes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classes"
+                ],
+                "summary": "Create a class",
+                "parameters": [
+                    {
+                        "description": "class payload",
+                        "name": "class",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/classes/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classes"
+                ],
+                "summary": "Get a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "class id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classes"
+                ],
+                "summary": "Update a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "class id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "class payload",
+                        "name": "class",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateClassRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classes"
+                ],
+                "summary": "Delete a class",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "class id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/classrooms": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classrooms"
+                ],
+                "summary": "List classrooms",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classrooms"
+                ],
+                "summary": "Create a classroom",
+                "parameters": [
+                    {
+                        "description": "classroom payload",
+                        "name": "classroom",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateClassroomRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/classrooms/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classrooms"
+                ],
+                "summary": "Get a classroom",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "classroom id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classrooms"
+                ],
+                "summary": "Update a classroom",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "classroom id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "classroom payload",
+                        "name": "classroom",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateClassroomRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "classrooms"
+                ],
+                "summary": "Delete a classroom",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "classroom id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/courses": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "List courses",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Create a course",
+                "parameters": [
+                    {
+                        "description": "course payload",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateCourseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/courses/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Get a course",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "course id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Update a course",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "course id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "course payload",
+                        "name": "course",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateCourseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Delete a course",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "course id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "List timetable entries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "week",
+                        "name": "week",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "class id",
+                        "name": "class_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "teacher id",
+                        "name": "teacher_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "classroom id",
+                        "name": "classroom_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/adjustments": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "List adjustment history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/conflicts": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Detect conflicts in the current timetable",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/export": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Export a timetable as JSON or CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "class|teacher|classroom",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "entity id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "week",
+                        "name": "week",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "json|csv",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/generate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Generate a timetable",
+                "parameters": [
+                    {
+                        "description": "scheduling input",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/move": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Move a timetable entry to a free slot",
+                "parameters": [
+                    {
+                        "description": "move payload",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.MoveScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/swap": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Swap two timetable entries",
+                "parameters": [
+                    {
+                        "description": "swap payload",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.SwapScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/schedules/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Get one timetable entry",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "schedule id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/statistics/classrooms": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "Get classroom utilization statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/statistics/density": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "Get course density heatmap data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/statistics/teachers": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "Get teacher workload statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/teachers": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teachers"
+                ],
+                "summary": "List teachers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teachers"
+                ],
+                "summary": "Create a teacher",
+                "parameters": [
+                    {
+                        "description": "teacher payload",
+                        "name": "teacher",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateTeacherRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/teachers/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teachers"
+                ],
+                "summary": "Get a teacher",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "teacher id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teachers"
+                ],
+                "summary": "Update a teacher",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "teacher id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "teacher payload",
+                        "name": "teacher",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateTeacherRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "teachers"
+                ],
+                "summary": "Delete a teacher",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "teacher id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/time-slots": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time-slots"
+                ],
+                "summary": "List time-slots",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time-slots"
+                ],
+                "summary": "Create a time slot",
+                "parameters": [
+                    {
+                        "description": "time slot payload",
+                        "name": "time_slot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateTimeSlotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/time-slots/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time-slots"
+                ],
+                "summary": "Get a time slot",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "time slot id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time-slots"
+                ],
+                "summary": "Update a time slot",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "time slot id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "time slot payload",
+                        "name": "time_slot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateTimeSlotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time-slots"
+                ],
+                "summary": "Delete a time slot",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "time slot id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_gbschedule_gbschedule_internal_dto.CourseRequirement": {
+            "type": "object",
+            "required": [
+                "course_id",
+                "weekly_periods"
+            ],
+            "properties": {
+                "class_id": {
+                    "type": "integer"
+                },
+                "consecutive": {
+                    "type": "boolean"
+                },
+                "course_id": {
+                    "type": "integer"
+                },
+                "teacher_id": {
+                    "type": "integer"
+                },
+                "weekly_periods": {
+                    "type": "integer",
+                    "maximum": 40,
+                    "minimum": 1
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.CreateClassRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "student_count"
+            ],
+            "properties": {
+                "grade": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "student_count": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.CreateClassroomRequest": {
+            "type": "object",
+            "required": [
+                "capacity",
+                "code",
+                "name"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "equipment": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.CreateCourseRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "duration",
+                "name"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "duration": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "room_type": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.CreateTeacherRequest": {
+            "type": "object",
+            "required": [
+                "employee_no",
+                "name"
+            ],
+            "properties": {
+                "contact": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "employee_no": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "subjects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "unavailable_slots": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.CreateTimeSlotRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "end_time",
+                "name",
+                "start_time"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "end_time": {
+                    "type": "string",
+                    "maxLength": 8
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "start_time": {
+                    "type": "string",
+                    "maxLength": 8
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest": {
+            "type": "object",
+            "required": [
+                "courses",
+                "days_per_week",
+                "periods_per_day",
+                "weeks"
+            ],
+            "properties": {
+                "class_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "classroom_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "courses": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/github_com_gbschedule_gbschedule_internal_dto.CourseRequirement"
+                    }
+                },
+                "days_per_week": {
+                    "type": "integer",
+                    "maximum": 7,
+                    "minimum": 1
+                },
+                "periods_per_day": {
+                    "type": "integer",
+                    "maximum": 20,
+                    "minimum": 1
+                },
+                "semester": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "teacher_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "weeks": {
+                    "type": "integer",
+                    "maximum": 30,
+                    "minimum": 1
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.MoveScheduleRequest": {
+            "type": "object",
+            "required": [
+                "classroom_id",
+                "day_of_week",
+                "schedule_id",
+                "time_slot_id",
+                "week"
+            ],
+            "properties": {
+                "classroom_id": {
+                    "type": "integer"
+                },
+                "day_of_week": {
+                    "type": "integer",
+                    "maximum": 7,
+                    "minimum": 1
+                },
+                "schedule_id": {
+                    "type": "integer"
+                },
+                "time_slot_id": {
+                    "type": "integer"
+                },
+                "week": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.SwapScheduleRequest": {
+            "type": "object",
+            "required": [
+                "schedule_a_id",
+                "schedule_b_id"
+            ],
+            "properties": {
+                "schedule_a_id": {
+                    "type": "integer"
+                },
+                "schedule_b_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.UpdateClassRequest": {
+            "type": "object",
+            "properties": {
+                "grade": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "student_count": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.UpdateClassroomRequest": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "equipment": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.UpdateCourseRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "duration": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "room_type": {
+                    "type": "string",
+                    "maxLength": 128
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.UpdateTeacherRequest": {
+            "type": "object",
+            "properties": {
+                "contact": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "employee_no": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "subjects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "unavailable_slots": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_gbschedule_gbschedule_internal_dto.UpdateTimeSlotRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "end_time": {
+                    "type": "string",
+                    "maxLength": 8
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "start_time": {
+                    "type": "string",
+                    "maxLength": 8
+                }
+            }
+        }
+    }
+}

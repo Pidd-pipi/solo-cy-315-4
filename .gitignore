@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+.DS_Store
+*.log
+.idea/
+.vscode/
+coverage/
+backend/bin/
+backend/server
+*.exe
+*.test
+coverage.out
+*.db
+*.sqlite3
+
+# runtime data and generated artifacts
+data/
+output/
+logs/
+build/

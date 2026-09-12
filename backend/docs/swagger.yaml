@@ -1,0 +1,997 @@
+basePath: /
+definitions:
+  github_com_gbschedule_gbschedule_internal_dto.CourseRequirement:
+    properties:
+      class_id:
+        type: integer
+      consecutive:
+        type: boolean
+      course_id:
+        type: integer
+      teacher_id:
+        type: integer
+      weekly_periods:
+        maximum: 40
+        minimum: 1
+        type: integer
+    required:
+    - course_id
+    - weekly_periods
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.CreateClassRequest:
+    properties:
+      grade:
+        maxLength: 64
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      student_count:
+        minimum: 1
+        type: integer
+    required:
+    - name
+    - student_count
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.CreateClassroomRequest:
+    properties:
+      capacity:
+        minimum: 1
+        type: integer
+      code:
+        maxLength: 64
+        type: string
+      equipment:
+        items:
+          type: string
+        type: array
+      name:
+        maxLength: 128
+        type: string
+    required:
+    - capacity
+    - code
+    - name
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.CreateCourseRequest:
+    properties:
+      code:
+        maxLength: 64
+        type: string
+      duration:
+        minimum: 1
+        type: integer
+      name:
+        maxLength: 128
+        type: string
+      room_type:
+        maxLength: 128
+        type: string
+    required:
+    - code
+    - duration
+    - name
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.CreateTeacherRequest:
+    properties:
+      contact:
+        maxLength: 128
+        type: string
+      employee_no:
+        maxLength: 64
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      subjects:
+        items:
+          type: string
+        type: array
+      unavailable_slots:
+        items:
+          type: string
+        type: array
+    required:
+    - employee_no
+    - name
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.CreateTimeSlotRequest:
+    properties:
+      code:
+        maxLength: 64
+        type: string
+      end_time:
+        maxLength: 8
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      start_time:
+        maxLength: 8
+        type: string
+    required:
+    - code
+    - end_time
+    - name
+    - start_time
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest:
+    properties:
+      class_ids:
+        items:
+          type: integer
+        type: array
+      classroom_ids:
+        items:
+          type: integer
+        type: array
+      courses:
+        items:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CourseRequirement'
+        minItems: 1
+        type: array
+      days_per_week:
+        maximum: 7
+        minimum: 1
+        type: integer
+      periods_per_day:
+        maximum: 20
+        minimum: 1
+        type: integer
+      semester:
+        maxLength: 128
+        type: string
+      teacher_ids:
+        items:
+          type: integer
+        type: array
+      weeks:
+        maximum: 30
+        minimum: 1
+        type: integer
+    required:
+    - courses
+    - days_per_week
+    - periods_per_day
+    - weeks
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.MoveScheduleRequest:
+    properties:
+      classroom_id:
+        type: integer
+      day_of_week:
+        maximum: 7
+        minimum: 1
+        type: integer
+      schedule_id:
+        type: integer
+      time_slot_id:
+        type: integer
+      week:
+        minimum: 1
+        type: integer
+    required:
+    - classroom_id
+    - day_of_week
+    - schedule_id
+    - time_slot_id
+    - week
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.SwapScheduleRequest:
+    properties:
+      schedule_a_id:
+        type: integer
+      schedule_b_id:
+        type: integer
+    required:
+    - schedule_a_id
+    - schedule_b_id
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.UpdateClassRequest:
+    properties:
+      grade:
+        maxLength: 64
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      student_count:
+        minimum: 1
+        type: integer
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.UpdateClassroomRequest:
+    properties:
+      capacity:
+        minimum: 1
+        type: integer
+      code:
+        maxLength: 64
+        type: string
+      equipment:
+        items:
+          type: string
+        type: array
+      name:
+        maxLength: 128
+        type: string
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.UpdateCourseRequest:
+    properties:
+      code:
+        maxLength: 64
+        type: string
+      duration:
+        minimum: 1
+        type: integer
+      name:
+        maxLength: 128
+        type: string
+      room_type:
+        maxLength: 128
+        type: string
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.UpdateTeacherRequest:
+    properties:
+      contact:
+        maxLength: 128
+        type: string
+      employee_no:
+        maxLength: 64
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      subjects:
+        items:
+          type: string
+        type: array
+      unavailable_slots:
+        items:
+          type: string
+        type: array
+    type: object
+  github_com_gbschedule_gbschedule_internal_dto.UpdateTimeSlotRequest:
+    properties:
+      code:
+        maxLength: 64
+        type: string
+      end_time:
+        maxLength: 8
+        type: string
+      name:
+        maxLength: 128
+        type: string
+      start_time:
+        maxLength: 8
+        type: string
+    type: object
+info:
+  contact: {}
+  description: 教室排课、教室资源管理和冲突检测 RESTful API。
+  title: 教室排课助手 API
+  version: 1.0.0
+paths:
+  /api/v1/classes:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List classes
+      tags:
+      - classes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: class payload
+        in: body
+        name: class
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateClassRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Create a class
+      tags:
+      - classes
+  /api/v1/classes/{id}:
+    delete:
+      parameters:
+      - description: class id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Delete a class
+      tags:
+      - classes
+    get:
+      parameters:
+      - description: class id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a class
+      tags:
+      - classes
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: class id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: class payload
+        in: body
+        name: class
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateClassRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Update a class
+      tags:
+      - classes
+  /api/v1/classrooms:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List classrooms
+      tags:
+      - classrooms
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: classroom payload
+        in: body
+        name: classroom
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateClassroomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Create a classroom
+      tags:
+      - classrooms
+  /api/v1/classrooms/{id}:
+    delete:
+      parameters:
+      - description: classroom id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Delete a classroom
+      tags:
+      - classrooms
+    get:
+      parameters:
+      - description: classroom id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a classroom
+      tags:
+      - classrooms
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: classroom id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: classroom payload
+        in: body
+        name: classroom
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateClassroomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Update a classroom
+      tags:
+      - classrooms
+  /api/v1/courses:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List courses
+      tags:
+      - courses
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: course payload
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateCourseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Create a course
+      tags:
+      - courses
+  /api/v1/courses/{id}:
+    delete:
+      parameters:
+      - description: course id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Delete a course
+      tags:
+      - courses
+    get:
+      parameters:
+      - description: course id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a course
+      tags:
+      - courses
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: course id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: course payload
+        in: body
+        name: course
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateCourseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Update a course
+      tags:
+      - courses
+  /api/v1/schedules:
+    get:
+      parameters:
+      - description: week
+        in: query
+        name: week
+        type: integer
+      - description: class id
+        in: query
+        name: class_id
+        type: integer
+      - description: teacher id
+        in: query
+        name: teacher_id
+        type: integer
+      - description: classroom id
+        in: query
+        name: classroom_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List timetable entries
+      tags:
+      - schedules
+  /api/v1/schedules/{id}:
+    get:
+      parameters:
+      - description: schedule id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get one timetable entry
+      tags:
+      - schedules
+  /api/v1/schedules/adjustments:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List adjustment history
+      tags:
+      - schedules
+  /api/v1/schedules/conflicts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Detect conflicts in the current timetable
+      tags:
+      - schedules
+  /api/v1/schedules/export:
+    get:
+      parameters:
+      - description: class|teacher|classroom
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: entity id
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: week
+        in: query
+        name: week
+        type: integer
+      - description: json|csv
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Export a timetable as JSON or CSV
+      tags:
+      - schedules
+  /api/v1/schedules/generate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: scheduling input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.GenerateScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Generate a timetable
+      tags:
+      - schedules
+  /api/v1/schedules/move:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: move payload
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.MoveScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Move a timetable entry to a free slot
+      tags:
+      - schedules
+  /api/v1/schedules/swap:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: swap payload
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.SwapScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Swap two timetable entries
+      tags:
+      - schedules
+  /api/v1/statistics/classrooms:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get classroom utilization statistics
+      tags:
+      - statistics
+  /api/v1/statistics/density:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get course density heatmap data
+      tags:
+      - statistics
+  /api/v1/statistics/teachers:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get teacher workload statistics
+      tags:
+      - statistics
+  /api/v1/teachers:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List teachers
+      tags:
+      - teachers
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: teacher payload
+        in: body
+        name: teacher
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateTeacherRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Create a teacher
+      tags:
+      - teachers
+  /api/v1/teachers/{id}:
+    delete:
+      parameters:
+      - description: teacher id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Delete a teacher
+      tags:
+      - teachers
+    get:
+      parameters:
+      - description: teacher id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a teacher
+      tags:
+      - teachers
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: teacher id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: teacher payload
+        in: body
+        name: teacher
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateTeacherRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Update a teacher
+      tags:
+      - teachers
+  /api/v1/time-slots:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: List time-slots
+      tags:
+      - time-slots
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: time slot payload
+        in: body
+        name: time_slot
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.CreateTimeSlotRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Create a time slot
+      tags:
+      - time-slots
+  /api/v1/time-slots/{id}:
+    delete:
+      parameters:
+      - description: time slot id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Delete a time slot
+      tags:
+      - time-slots
+    get:
+      parameters:
+      - description: time slot id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Get a time slot
+      tags:
+      - time-slots
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: time slot id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: time slot payload
+        in: body
+        name: time_slot
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.UpdateTimeSlotRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_gbschedule_gbschedule_internal_dto.Response'
+      summary: Update a time slot
+      tags:
+      - time-slots
+swagger: "2.0"

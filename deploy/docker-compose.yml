@@ -1,0 +1,27 @@
+name: gbschedule
+
+services:
+  gbschedule:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-gbschedule}-gbschedule
+    environment:
+      ENV: production
+      SERVER_PORT: 8080
+      DB_PATH: ${DB_PATH:-./data/gbschedule.db}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${BACKEND_PORT:-19515}:8080"
+    volumes:
+      - gbschedule_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  gbschedule_data:
